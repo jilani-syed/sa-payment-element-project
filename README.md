@@ -1,6 +1,6 @@
-# Sample Bookstore: Accept Payments with Stripe Payment Element
+# Accept Payments with Stripe Payment Element
 
-This repository is a sample bookstore built to demonstrate how to handle one-time payments with Stripe. A customer can add books to a cart, review the order, pay with Stripe Payment Element, and see the verified payment result.
+This is a sample bookstore built to demonstrate how to handle one-time payments with Stripe. A customer can add books to a cart, review the order, pay with Stripe Payment Element, and see the verified payment result.
 
 The catalog, cart, and local order storage are intentionally simple so the Stripe payment flow is easy to follow. This is not a complete ecommerce platform or a production-ready storefront.
 
@@ -125,7 +125,7 @@ payment_intent.canceled
 
 Webhook signatures are checked with `stripe.webhooks.constructEvent()` using the raw request body, the `Stripe-Signature` header, and `STRIPE_WEBHOOK_SECRET`.
 
-## Sample architecture
+## Architecture 
 
 The application runs as one Express process with server-rendered Handlebars pages and browser JavaScript under `public/`.
 
