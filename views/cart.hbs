@@ -1,0 +1,51 @@
+<main class="mt-40 mb-5">
+  <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+    <div>
+      <h1>Your cart</h1>
+      <p class="text-secondary mb-0">Review your books and quantities before checkout.</p>
+    </div>
+    <a href="/" class="btn btn-outline-secondary mt-2">Continue shopping</a>
+  </div>
+
+  <div id="cart-error" class="alert alert-danger d-none" role="alert"></div>
+
+  <section id="empty-cart" class="card box-shadow d-none" aria-live="polite">
+    <div class="card-body text-center py-5">
+      <h2 class="h4">Your cart is empty</h2>
+      <p class="text-secondary">Choose a Stripe Press book to get started.</p>
+      <a href="/" class="btn btn-primary">Browse books</a>
+    </div>
+  </section>
+
+  <div id="cart-content" class="row d-none">
+    <section class="col-lg-8" aria-labelledby="cart-items-heading">
+      <h2 id="cart-items-heading" class="sr-only">Cart items</h2>
+      <div id="cart-items"></div>
+    </section>
+
+    <aside class="col-lg-4">
+      <div class="card box-shadow cart-summary">
+        <div class="card-body">
+          <h2 class="h4">Order summary</h2>
+          <div class="d-flex justify-content-between mt-4">
+            <span>Items (<span id="cart-summary-count">0</span>)</span>
+            <span id="cart-subtotal">$0.00</span>
+          </div>
+          <hr>
+          <div class="d-flex justify-content-between font-weight-bold">
+            <span>Subtotal</span>
+            <span id="cart-total">$0.00</span>
+          </div>
+          <p class="small text-secondary mt-3">The server validates current prices before creating the payment.</p>
+          <a id="checkout-button" href="/checkout" class="btn btn-primary btn-lg btn-block mt-4">
+            Proceed to checkout
+          </a>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <p id="cart-page-status" class="sr-only" aria-live="polite"></p>
+</main>
+
+<script src="/js/cart-page.js"></script>

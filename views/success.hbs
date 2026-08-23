@@ -1,0 +1,39 @@
+<main id="payment-result" class="mt-40" data-payment-succeeded="{{isSucceeded}}">
+  <div class="card box-shadow payment-result-card mx-auto">
+    <div class="card-body text-center p-5">
+      <h1 class="{{headingClass}}">{{heading}}</h1>
+      <p class="text-secondary mt-3">{{message}}</p>
+
+      {{#if showDetails}}
+        <dl class="payment-details text-left mt-4 mb-4">
+          <div class="payment-detail-row">
+            <dt>Total</dt>
+            <dd>{{amount}}</dd>
+          </div>
+          <div class="payment-detail-row">
+            <dt>Payment status</dt>
+            <dd><code>{{status}}</code></dd>
+          </div>
+          <div class="payment-detail-row">
+            <dt>PaymentIntent ID</dt>
+            <dd><code>{{paymentIntentId}}</code></dd>
+          </div>
+          {{#if orderId}}
+            <div class="payment-detail-row">
+              <dt>Order ID</dt>
+              <dd><code>{{orderId}}</code></dd>
+            </div>
+          {{/if}}
+        </dl>
+      {{/if}}
+
+      {{#if isSucceeded}}
+        <a href="/" class="btn btn-primary">Continue shopping</a>
+      {{else}}
+        <a href="/checkout" class="btn btn-primary">Return to checkout</a>
+      {{/if}}
+    </div>
+  </div>
+</main>
+
+<script src="/js/success.js"></script>

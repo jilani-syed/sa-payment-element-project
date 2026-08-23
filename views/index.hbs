@@ -1,0 +1,33 @@
+<div class="text-center mt-40">
+  <h1>
+    Stripe Press Shop
+  </h1>
+  <p class="text-secondary">
+    Select an item to purchase
+  </p>
+</div>
+<div class="mt-40 row">
+  {{#each books}}
+  <div class="col-lg-4 col-md-6 mb-4">
+    <div class="card box-shadow h-100">
+      <img src="{{image}}" class="card-img-top" alt="Cover of {{title}}">
+      <div class="card-body">
+        <h5 class="card-title">{{title}}</h5>
+        <strong>{{author}}</strong>
+        <p class="card-text mt-20">
+          {{description}}
+        </p>
+        <button
+          type="button"
+          class="btn btn-primary btn-block"
+          data-add-to-cart
+          data-book-id="{{id}}"
+          data-book-title="{{title}}"
+        >
+          Add to cart — $<span class="amount" data-amount="{{amount}}"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+  {{/each}}
+</div>
