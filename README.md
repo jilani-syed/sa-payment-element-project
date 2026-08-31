@@ -92,9 +92,9 @@ npm test
 
 1. `lib/catalog.js` provides the book catalog and trusted prices.
 2. The browser stores book IDs and quantities in `localStorage`. It never supplies the price used for payment.
-3. The checkout page sends the cart and a checkout token to `POST /create-payment-intent`.
-4. The server validates the cart, calculates the total, and creates a local order record.
-5. The server creates one PaymentIntent for the checkout attempt. If the request is retried, the existing PaymentIntent is reused.
+3. The checkout page collects an order email, then sends the email, cart, and checkout token to `POST /create-payment-intent`.
+4. The server validates the email and cart, calculates the total, and finds or creates the Stripe Customer.
+5. The server stores the Customer ID with the order and creates one PaymentIntent with `customer: cus_...`. If the request is retried, the existing Customer and PaymentIntent are reused.
 6. The browser receives the client secret and mounts Stripe Payment Element.
 7. `stripe.confirmPayment()` submits the payment and handles additional authentication when required.
 8. Stripe returns the customer to `/success`, where the server retrieves the PaymentIntent before displaying the result.
@@ -109,6 +109,8 @@ The success page provides immediate customer feedback. The webhook is the reliab
 | [Stripe.js](https://docs.stripe.com/js) | Initializes Stripe in the browser with the publishable key |
 | [Payment Element](https://docs.stripe.com/payments/payment-element) | Collects and validates payment details on the checkout page |
 | [Create a PaymentIntent](https://docs.stripe.com/api/payment_intents/create) | Creates a payment for the server-calculated order amount |
+| [Customers API](https://docs.stripe.com/api/customers) | Finds or creates the Customer associated with the order email |
+| [List Charges](https://docs.stripe.com/api/charges/list) | Returns recent test-mode Charges for a Customer |
 | [Retrieve a PaymentIntent](https://docs.stripe.com/api/payment_intents/retrieve) | Verifies the payment before showing the confirmation page |
 | [`stripe.confirmPayment()`](https://docs.stripe.com/js/payment_intents/confirm_payment) | Confirms the payment from the browser |
 | [Idempotent requests](https://docs.stripe.com/api/idempotent_requests) | Prevents retries from creating duplicate PaymentIntents |
@@ -134,7 +136,8 @@ The application runs as one Express process with server-rendered Handlebars page
 | HTTP and Stripe integration | `app.js` | Routes, PaymentIntent calls, webhook verification, and error handling |
 | Catalog | `lib/catalog.js` | Book information and trusted prices |
 | Order calculation | `lib/order.js` | Cart validation and server-side totals |
-| Checkout handling | `lib/checkout.js` | Checkout tokens, cart hashes, and order records |
+| Checkout handling | `lib/checkout.js` | Checkout tokens, customer-aware cart hashes, and order records |
+| Customer handling | `lib/customer.js` | Email validation and Stripe Customer lookup or creation |
 | Order storage | `lib/order-store.js` | Local JSON persistence and webhook deduplication |
 | Cart | `public/js/cart.js`, `public/js/cart-page.js` | Browser cart and quantity changes |
 | Payment form | `public/js/payment.js` | PaymentIntent request, Payment Element, and confirmation |
@@ -142,6 +145,16 @@ The application runs as one Express process with server-rendered Handlebars page
 | Tests | `test/` | Cart, pricing, checkout, persistence, and payment-status tests |
 
 The browser is treated as untrusted. The server calculates the amount from its own catalog, and payment details are collected by Stripe rather than passing through this application.
+
+In test mode, recent Charges for an email can be requested with:
+
+```bash
+curl -G http://localhost:3000/api/charges \
+  --data-urlencode "email=customer@example.com" \
+  --data-urlencode "limit=10"
+```
+
+This email-based endpoint is disabled for live keys. A production application must authenticate the caller and load the stored Stripe Customer ID from the signed-in account instead of treating an email address as authorization.
 
 Orders are stored in `data/orders.json` for local use. This keeps the sample easy to run, but it supports only one Node.js process. A production version should use a transactional database, durable fulfillment queue, managed secrets, HTTPS, and webhook monitoring.
 

@@ -95,8 +95,9 @@ curl http://localhost:3000/health
 1. Add one or more books to the cart.
 2. Change a quantity and confirm the subtotal updates.
 3. Proceed to checkout.
-4. Wait for the Payment Element to finish loading and complete every required field.
-5. Submit the payment using Stripe test data.
+4. Enter an order email and select **Continue to payment**.
+5. Wait for the Payment Element to finish loading and complete every required field.
+6. Submit the payment using Stripe test data.
 
 | Scenario | Card number |
 | --- | --- |
@@ -114,6 +115,15 @@ After a successful payment, confirm:
 - The cart is cleared.
 - The Stripe CLI reports a successful `POST /webhook` response.
 - `data/orders.json` records `"paymentStatus": "succeeded"` and `"fulfillmentStatus": "ready_for_fulfillment"`.
+- The Stripe PaymentIntent contains a Customer ID beginning with `cus_`.
+
+List recent test-mode Charges for the email:
+
+```bash
+curl -G http://localhost:3000/api/charges \
+  --data-urlencode "email=customer@example.com" \
+  --data-urlencode "limit=10"
+```
 
 ## 7. Run automated tests
 

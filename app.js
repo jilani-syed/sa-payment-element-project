@@ -12,6 +12,11 @@ const {
   validateCheckoutToken
 } = require('./lib/checkout');
 const { getBooks } = require('./lib/catalog');
+const {
+  findCustomerByEmail,
+  findOrCreateCustomer,
+  normalizeCustomerEmail
+} = require('./lib/customer');
 const logger = require('./lib/logger');
 const { buildOrder } = require('./lib/order');
 const JsonOrderStore = require('./lib/order-store');
@@ -194,6 +199,79 @@ app.get('/api/books', function(req, res) {
   });
 });
 
+/**
+ * List recent Charges for the Stripe Customer identified by email.
+ * This sample endpoint is restricted to test mode because an email address
+ * identifies a customer but does not authenticate the person making the call.
+ */
+app.get('/api/charges', async function(req, res) {
+  if (!stripeSecretKey.startsWith('sk_test_')) {
+    return res.status(403).json({
+      error: 'Charge lookup by email is disabled in live mode.'
+    });
+  }
+
+  const email = normalizeCustomerEmail(req.query.email);
+  const limit = Number(req.query.limit || 10);
+
+  if (!email) {
+    return res.status(400).json({
+      error: 'A valid customer email is required.'
+    });
+  }
+
+  if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+    return res.status(400).json({
+      error: 'Limit must be an integer between 1 and 100.'
+    });
+  }
+
+  try {
+    const customer = await findCustomerByEmail(stripe, email);
+
+    if (!customer) {
+      return res.json({
+        customerId: null,
+        charges: [],
+        hasMore: false
+      });
+    }
+
+    const charges = await stripe.charges.list({
+      customer: customer.id,
+      limit
+    });
+
+    return res.json({
+      customerId: customer.id,
+      charges: charges.data.map((charge) => ({
+        id: charge.id,
+        paymentIntentId: typeof charge.payment_intent === 'string'
+          ? charge.payment_intent
+          : charge.payment_intent && charge.payment_intent.id,
+        amount: charge.amount,
+        amountCaptured: charge.amount_captured,
+        amountRefunded: charge.amount_refunded,
+        currency: charge.currency,
+        status: charge.status,
+        paid: charge.paid,
+        refunded: charge.refunded,
+        disputed: charge.disputed,
+        created: charge.created
+      })),
+      hasMore: charges.has_more
+    });
+  } catch (error) {
+    logger.error('customer_charge_lookup_failed', {
+      requestId: req.requestId,
+      errorType: error.type || error.name
+    });
+    return res.status(500).json({
+      error: 'Unable to retrieve customer charges.'
+    });
+  }
+});
+
 app.get('/cart', function(req, res) {
   res.render('cart');
 });
@@ -209,11 +287,21 @@ app.get('/checkout', function(req, res) {
  */
 app.post('/create-payment-intent', async function(req, res) {
   const checkoutToken = req.body && req.body.checkoutToken;
+  const customerEmail = normalizeCustomerEmail(
+    req.body && req.body.email
+  );
 
   if (!validateCheckoutToken(checkoutToken)) {
     return res.status(400).json({
       code: 'invalid_checkout_token',
       error: 'A valid checkout token is required.'
+    });
+  }
+
+  if (!customerEmail) {
+    return res.status(400).json({
+      code: 'invalid_customer_email',
+      error: 'A valid customer email is required.'
     });
   }
 
@@ -229,8 +317,14 @@ app.post('/create-payment-intent', async function(req, res) {
   }
 
   try {
-    const cartHash = createCartHash(order);
-    const requestedOrder = createOrderRecord(checkoutToken, cartHash, order);
+    const customer = await findOrCreateCustomer(stripe, customerEmail);
+    const cartHash = createCartHash(order, customer.id);
+    const requestedOrder = createOrderRecord(
+      checkoutToken,
+      cartHash,
+      order,
+      customer.id
+    );
     const storedResult = await orderStore.createOrGet(requestedOrder);
 
     if (storedResult.conflict) {
@@ -252,6 +346,7 @@ app.post('/create-payment-intent', async function(req, res) {
         {
           amount: storedOrder.amount,
           currency: storedOrder.currency,
+          customer: storedOrder.customerId,
           automatic_payment_methods: {
             enabled: true
           },
@@ -270,6 +365,22 @@ app.post('/create-payment-intent', async function(req, res) {
       );
 
       await orderStore.attachPaymentIntent(storedOrder.id, paymentIntent);
+    }
+
+    const paymentIntentCustomerId = typeof paymentIntent.customer === 'string'
+      ? paymentIntent.customer
+      : paymentIntent.customer && paymentIntent.customer.id;
+
+    if (paymentIntentCustomerId !== storedOrder.customerId) {
+      logger.error('payment_intent_customer_mismatch', {
+        requestId: req.requestId,
+        orderId: storedOrder.id,
+        paymentIntentId: paymentIntent.id
+      });
+      return res.status(409).json({
+        code: 'payment_customer_mismatch',
+        error: 'The payment no longer matches this customer.'
+      });
     }
 
     if (
@@ -313,7 +424,8 @@ app.post('/create-payment-intent', async function(req, res) {
       clientSecret: paymentIntent.client_secret,
       amount: storedOrder.amount,
       currency: storedOrder.currency,
-      orderId: storedOrder.id
+      orderId: storedOrder.id,
+      customerId: storedOrder.customerId
     });
   } catch (error) {
     logger.error('payment_intent_initialization_failed', {

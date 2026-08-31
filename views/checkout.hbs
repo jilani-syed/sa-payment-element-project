@@ -21,23 +21,50 @@
     <div class="card box-shadow mt-40">
       <div class="card-body">
         <form id="payment-form" name="payment-form">
-          <div id="payment-loading" class="mt-20 text-center text-secondary" role="status">
-            Loading secure payment options…
-          </div>
-          <div id="payment-element" class="mt-20"></div>
-          <div
-            id="payment-message"
-            class="alert alert-danger d-none mt-3"
-            role="alert"
-            aria-live="polite"
-          ></div>
-          <div class="small text-secondary mt-3">
-            Payment information is securely collected by Stripe and does not pass through this server.
-          </div>
-          <div class="mt-20">
-            <button id="payment-submit" type="submit" class="btn btn-lg btn-block btn-primary" disabled>
-              Loading payment options…
+          <div id="customer-section">
+            <div class="form-group mt-20">
+              <label for="customer-email">Order email</label>
+              <input
+                id="customer-email"
+                name="email"
+                type="email"
+                class="form-control"
+                autocomplete="email"
+                maxlength="254"
+                required
+              >
+              <small class="form-text text-secondary">
+                Used to associate this order with your Stripe customer record.
+              </small>
+            </div>
+            <button
+              id="payment-initialize"
+              type="button"
+              class="btn btn-block btn-primary"
+            >
+              Continue to payment
             </button>
+          </div>
+
+          <div id="payment-section" class="d-none">
+            <div id="payment-loading" class="mt-20 text-center text-secondary" role="status">
+              Loading secure payment options…
+            </div>
+            <div id="payment-element" class="mt-20"></div>
+            <div
+              id="payment-message"
+              class="alert alert-danger d-none mt-3"
+              role="alert"
+              aria-live="polite"
+            ></div>
+            <div class="small text-secondary mt-3">
+              Payment information is securely collected by Stripe and does not pass through this server.
+            </div>
+            <div class="mt-20">
+              <button id="payment-submit" type="submit" class="btn btn-lg btn-block btn-primary" disabled>
+                Loading payment options…
+              </button>
+            </div>
           </div>
         </form>
       </div>

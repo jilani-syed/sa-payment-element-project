@@ -36,7 +36,19 @@ test('creates a stable cart hash independent of line order', () => {
     lineItems: [...order.lineItems].reverse()
   };
 
-  assert.equal(createCartHash(order), createCartHash(reversedOrder));
+  assert.equal(
+    createCartHash(order, 'cus_test'),
+    createCartHash(reversedOrder, 'cus_test')
+  );
+});
+
+test('includes the customer in checkout integrity', () => {
+  const order = createOrder();
+
+  assert.notEqual(
+    createCartHash(order, 'cus_first'),
+    createCartHash(order, 'cus_second')
+  );
 });
 
 test('creates an order record without storing payment credentials', () => {
@@ -44,12 +56,14 @@ test('creates an order record without storing payment credentials', () => {
   const order = createOrder();
   const record = createOrderRecord(
     checkoutToken,
-    createCartHash(order),
-    order
+    createCartHash(order, 'cus_test'),
+    order,
+    'cus_test'
   );
 
   assert.match(record.id, /^ord_/);
   assert.equal(record.amount, 4600);
+  assert.equal(record.customerId, 'cus_test');
   assert.equal(record.paymentIntentId, null);
   assert.equal(record.fulfillmentStatus, 'unfulfilled');
 });
