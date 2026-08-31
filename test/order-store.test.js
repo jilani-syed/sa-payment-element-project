@@ -38,8 +38,9 @@ test('creates and reuses an order for the same checkout token', async (t) => {
   const order = createOrder();
   const record = createOrderRecord(
     '123e4567-e89b-42d3-a456-426614174000',
-    createCartHash(order),
-    order
+    createCartHash(order, 'cus_test'),
+    order,
+    'cus_test'
   );
 
   const created = await store.createOrGet(record);
@@ -56,8 +57,9 @@ test('rejects reuse of a checkout token for a changed cart', async (t) => {
   const order = createOrder();
   const record = createOrderRecord(
     '123e4567-e89b-42d3-a456-426614174000',
-    createCartHash(order),
-    order
+    createCartHash(order, 'cus_test'),
+    order,
+    'cus_test'
   );
 
   await store.createOrGet(record);
@@ -69,13 +71,34 @@ test('rejects reuse of a checkout token for a changed cart', async (t) => {
   assert.equal(conflicting.conflict, true);
 });
 
+test('rejects reuse of a checkout token for another customer', async (t) => {
+  const { store } = await createStore(t);
+  const order = createOrder();
+  const record = createOrderRecord(
+    '123e4567-e89b-42d3-a456-426614174000',
+    createCartHash(order, 'cus_first'),
+    order,
+    'cus_first'
+  );
+
+  await store.createOrGet(record);
+  const conflicting = await store.createOrGet({
+    ...record,
+    customerId: 'cus_second',
+    cartHash: createCartHash(order, 'cus_second')
+  });
+
+  assert.equal(conflicting.conflict, true);
+});
+
 test('persists a PaymentIntent association across store instances', async (t) => {
   const { store, storePath } = await createStore(t);
   const order = createOrder();
   const record = createOrderRecord(
     '123e4567-e89b-42d3-a456-426614174000',
-    createCartHash(order),
-    order
+    createCartHash(order, 'cus_test'),
+    order,
+    'cus_test'
   );
 
   await store.createOrGet(record);
@@ -89,6 +112,7 @@ test('persists a PaymentIntent association across store instances', async (t) =>
   const reloaded = await reloadedStore.findByPaymentIntentId('pi_test_123');
 
   assert.equal(reloaded.id, record.id);
+  assert.equal(reloaded.customerId, 'cus_test');
   assert.equal(reloaded.paymentStatus, 'requires_payment_method');
 });
 
@@ -97,8 +121,9 @@ test('deduplicates webhook events and protects succeeded orders from stale event
   const order = createOrder();
   const record = createOrderRecord(
     '123e4567-e89b-42d3-a456-426614174000',
-    createCartHash(order),
-    order
+    createCartHash(order, 'cus_test'),
+    order,
+    'cus_test'
   );
 
   await store.createOrGet(record);
@@ -138,8 +163,9 @@ test('reconciles an early webhook using order metadata', async (t) => {
   const order = createOrder();
   const record = createOrderRecord(
     'b84b6f62-22d0-44f7-bf4c-d5f746fe5361',
-    createCartHash(order),
-    order
+    createCartHash(order, 'cus_test'),
+    order,
+    'cus_test'
   );
 
   await store.createOrGet(record);
